@@ -1,0 +1,20 @@
+# build artifacts
+sw_serial
+sw_serial_lw
+sw_serial_mc
+sw_serial_schemes
+sw_mpi
+sw_mpi_lw
+sw_mpi_mc
+*.o
+
+# runtime outputs (generated)
+outputs/
+
+# python cache
+__pycache__/
+*.pyc
+
+# editor/OS
+.vscode/
+.DS_Store
