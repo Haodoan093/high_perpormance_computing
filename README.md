@@ -114,17 +114,14 @@ Trong code, mỗi timestep có 2 lần `MPI_Sendrecv` cho mỗi trường:
 - [scripts](scripts/): build/run/verify/bench scripts.
 - [outputs](outputs/): generated CSV outputs.
 - [results](results/): benchmark CSVs.
-- [parallel_algorithm_extracted.txt](parallel_algorithm_extracted.txt): rough plaintext extracted from the provided PDF (for quick searching).
 
 ## Build
 From this folder:
 
-Preferred (does not require `make`):
-
+- `cd high_perpormance_computing`
 - `bash scripts/build.sh`
 
 Optional (requires `make` installed):
-
 - `make -j`
 
 If scripts are not executable: `chmod +x scripts/*.sh`.
@@ -146,15 +143,6 @@ Other serial schemes:
 - `NX=200 NY=200 STEPS=400 DT=0.01 OUT=outputs/h_serial_lw.csv bash scripts/run_serial_lw.sh`
 - `NX=200 NY=200 STEPS=400 DT=0.01 OUT=outputs/h_serial_mc.csv bash scripts/run_serial_mc.sh`
 
-All run scripts support `NO_OUTPUT=1` to pass `--no-output`:
-
-- `NX=400 NY=400 STEPS=200 DT=0.005 NO_OUTPUT=1 bash scripts/run_serial.sh`
-
-Unified serial binary (choose scheme at runtime):
-- `./sw_serial_schemes --scheme lf --nx 200 --ny 200 --steps 400 --dt 0.01 --out outputs/h_lf.csv`
-- `./sw_serial_schemes --scheme lw --nx 200 --ny 200 --steps 400 --dt 0.01 --out outputs/h_lw.csv`
-- `./sw_serial_schemes --scheme mc --nx 200 --ny 200 --steps 400 --dt 0.01 --out outputs/h_mc.csv`
-
 ## Run (MPI)
 Example:
 
@@ -168,43 +156,36 @@ Or via script:
 
 - `NP=4 NX=200 NY=200 STEPS=400 DT=0.01 OUT=outputs/h_mpi.csv bash scripts/run_mpi.sh`
 
-All MPI run scripts support `NO_OUTPUT=1`:
-
-- `NP=4 NX=800 NY=800 STEPS=200 DT=0.005 NO_OUTPUT=1 bash scripts/run_mpi.sh`
-
 Notes:
 - `NX` must be divisible by `NP` (current decomposition).
 
-## Quick correctness check (serial vs MPI)
-Runs a small case and compares output CSVs:
+## Quick correctness check (single case)
+Runs one small case and compares output CSVs:
 
 - `bash scripts/verify.sh`
 
 Environment variables (optional):
 - `NP` (default `4`), `NX` (default `120`), `NY` (default `120`), `STEPS` (default `50`)
 - `DT`, `DX`, `DY`, `G`
-- `EPS` tolerance for max absolute difference (default `1e-12`)
-
-Pass/Fail criteria:
-- Script prints CSV sanity metrics (shape/min/max/sum) for both outputs.
-- Script prints `max_abs_diff` / `mean_abs_diff` / `max_rel_diff` and exits non-zero if `max_abs_diff >= EPS`.
-
-Example:
-- `NP=4 NX=120 NY=120 STEPS=50 EPS=1e-12 bash scripts/verify.sh`
+- `EPS` tolerance (default `1e-12`)
 
 Artifacts:
 - `outputs/verify_serial.csv`
 - `outputs/verify_mpi.csv`
 
-## Test suite (recommended for grading)
-Runs build + multiple correctness cases + sanity checks + a quick benchmark:
+## Test suite (recommended “one command”)
+Runs build + 2 unified correctness passes + a quick benchmark:
 
 - `bash scripts/test_all.sh`
 
-This is the recommended “one command” to validate the submission.
+`test_all.sh` configuration knobs (env overrides):
+- Correctness pass 1: `GRID_LIST_1`, `STEPS_1`, `DT_1`
+- Correctness pass 2: `GRID_LIST_2`, `STEPS_2`, `DT_2`
+- MPI sizes: `NP_LIST_CORRECTNESS` (default `1 2 4`)
+- Compare tolerance: `EPS`
 
 ## Unified correctness suite (LF/LW/MC)
-Runs serial vs MPI comparisons for all three schemes under the same IC/BC and the same `DT`/`STEPS`:
+Runs serial vs MPI comparisons for all three schemes:
 
 - `GRID_LIST="80x60 120x80" NP_LIST="1 2 4" STEPS=50 DT=0.01 EPS=1e-12 bash scripts/unified_correctness.sh`
 
@@ -225,44 +206,24 @@ What it does:
 
 Defaults (can be overridden via environment variables):
 - `NP_LIST="1 2 4"`
-- `GRID_LIST="80x60 100x80 120x80 160x120 200x150 240x180 280x200 320x240 360x260 480x360"` (10 grids)
+- `GRID_LIST="80x60 100x80 120x80 160x120 200x150 240x180 280x200 320x240 360x260 480x360 500x400 600x480"`
 - `STEPS=60`, `DT=0.01`, `DX=1.0`, `DY=1.0`, `G=9.81`, `EPS=1e-12`
 
-Example: run a smaller quick set:
+Example (smaller quick set):
 - `GRID_LIST="80x60 120x80" NP_LIST="1 2 4" STEPS=30 DT=0.01 bash scripts/correctness_lf_only.sh`
 
 Notes:
 - Each case requires `NX % NP == 0`; non-divisible cases are skipped.
 - Output folder: `outputs/correctness_lf_only_<timestamp>/`
 - Summary file: `outputs/correctness_lf_only_<timestamp>/results.csv`
-- Per-case outputs:
-  - `serial_<NX>x<NY>.csv`
-  - `mpi_np<NP>_<NX>x<NY>.csv`
 
 `results.csv` columns:
 `nx,ny,np,steps,dt,dx,dy,g,eps,serial_time_s,mpi_time_s,speedup,max_abs_diff,mean_abs_diff,max_rel_diff,n,serial_csv,mpi_csv,pass`
 
 ## Benchmark / experiments
 Runs serial baseline and MPI for a list of process counts, writing a long-format CSV under [results](results/).
-The runtime is measured using `CLOCK_MONOTONIC` (serial) and the global max across ranks using `CLOCK_MONOTONIC` (MPI).
 
 - `NX=400 NY=400 STEPS=200 DT=0.005 NP_LIST="1 2 4 8" BENCH_LW=1 BENCH_MC=1 NO_OUTPUT=1 bash scripts/bench.sh`
-
-Output CSV columns:
-`scheme,impl,np,nx,ny,steps,dt,dx,dy,g,time_s,t_seq_s,speedup,efficiency,hmin,hmax,no_output`
-
-## Grid sweep 200x200 → 1800x1800 (organized folders)
-Runs multiple grid sizes (square grids) and produces one combined CSV for plotting runtime/speedup/efficiency:
-
-- `NP_LIST="1 2 4" STEPS=200 DT=0.005 NO_OUTPUT=1 bash scripts/sweep_200_1800.sh`
-
-Artifacts:
-- `results/sweep_<timestamp>/bench_long.csv`
-- `results/sweep_<timestamp>/table_{lf,lw,mc}.csv`
-
-Common overrides:
-- `MIN_N`, `MAX_N`, `STEP_N`
-- `STEPS`, `DT`, `NP_LIST` (non-divisible `NX%NP!=0` runs are skipped)
 
 ## Packaging requirement reminder
 When submitting, place **Report / Slides / Code / README** in one `.zip/.tar` and name it as:

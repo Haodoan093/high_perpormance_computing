@@ -70,7 +70,6 @@ typedef struct Params
     double dt;
     double g;
     char out_csv[256];
-    int write_output;
 } Params;
 
 static void params_init_default(Params *p)
@@ -83,13 +82,12 @@ static void params_init_default(Params *p)
     p->dt = DEFAULT_DT;
     p->g = DEFAULT_G;
     snprintf(p->out_csv, sizeof(p->out_csv), "h_final_serial.csv");
-    p->write_output = 1;
 }
 
 static void print_usage(const char *prog)
 {
     fprintf(stderr,
-            "Usage: %s [--nx N] [--ny N] [--steps N] [--dt DT] [--dx DX] [--dy DY] [--g G] [--out FILE] [--no-output]\n",
+            "Usage: %s [--nx N] [--ny N] [--steps N] [--dt DT] [--dx DX] [--dy DY] [--g G] [--out FILE]\n",
             prog);
 }
 
@@ -114,8 +112,6 @@ static int parse_args(int argc, char **argv, Params *p)
             p->g = atof(argv[++i]);
         else if (strcmp(argv[i], "--out") == 0 && i + 1 < argc)
             snprintf(p->out_csv, sizeof(p->out_csv), "%s", argv[++i]);
-        else if (strcmp(argv[i], "--no-output") == 0)
-            p->write_output = 0;
         else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0)
         {
             print_usage(argv[0]);
@@ -368,28 +364,21 @@ int main(int argc, char **argv)
       - Chỉ xuất miền vật lý (bỏ ghost i=0 và i=NX+1)
       - Kích thước file: NX dòng, mỗi dòng NY số, phân tách bằng dấu phẩy.
     */
-    if (p.write_output)
+    FILE *fp = fopen(p.out_csv, "w");
+    if (!fp)
     {
-        FILE *fp = fopen(p.out_csv, "w");
-        if (!fp)
-        {
-            fprintf(stderr, "Cannot open %s for writing\n", p.out_csv);
-        }
-        else
-        {
-            for (int i = 0; i < NX; i++)
-            {
-                for (int j = 0; j < NY; j++)
-                    fprintf(fp, "%.10g%s", h[IDX(i + 1, j, NY)], (j == NY - 1) ? "" : ",");
-                fprintf(fp, "\n");
-            }
-            fclose(fp);
-            printf("Wrote %s\n", p.out_csv);
-        }
+        fprintf(stderr, "Cannot open %s for writing\n", p.out_csv);
     }
     else
     {
-        printf("Output disabled (--no-output)\n");
+        for (int i = 0; i < NX; i++)
+        {
+            for (int j = 0; j < NY; j++)
+                fprintf(fp, "%.10g%s", h[IDX(i + 1, j, NY)], (j == NY - 1) ? "" : ",");
+            fprintf(fp, "\n");
+        }
+        fclose(fp);
+        printf("Wrote %s\n", p.out_csv);
     }
 
     free(h);
