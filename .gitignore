@@ -8,8 +8,7 @@ sw_mpi_lw
 sw_mpi_mc
 *.o
 
-# runtime outputs (generated)
-outputs/
+
 
 # python cache
 __pycache__/

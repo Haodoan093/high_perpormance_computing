@@ -211,6 +211,37 @@ Runs serial vs MPI comparisons for all three schemes under the same IC/BC and th
 Artifacts:
 - `outputs/correctness_<timestamp>/scheme/NxM/{serial.csv,mpi_npK.csv}`
 
+## LF-only correctness suite (sw_serial vs sw_mpi)
+If you only want to validate the **LF solver** pair (the two binaries built from
+[shallow_water_conservative_serial.c](shallow_water_conservative_serial.c) and
+[shallow_water_conservative_mpi.c](shallow_water_conservative_mpi.c)), run:
+
+- `bash scripts/correctness_lf_only.sh`
+
+What it does:
+- Runs `sw_serial` and `sw_mpi` on a list of grids and MPI process counts.
+- Compares the output CSVs with tolerance `EPS`.
+- Writes a summary CSV `results.csv` including runtime and error metrics.
+
+Defaults (can be overridden via environment variables):
+- `NP_LIST="1 2 4"`
+- `GRID_LIST="80x60 100x80 120x80 160x120 200x150 240x180 280x200 320x240 360x260 480x360"` (10 grids)
+- `STEPS=60`, `DT=0.01`, `DX=1.0`, `DY=1.0`, `G=9.81`, `EPS=1e-12`
+
+Example: run a smaller quick set:
+- `GRID_LIST="80x60 120x80" NP_LIST="1 2 4" STEPS=30 DT=0.01 bash scripts/correctness_lf_only.sh`
+
+Notes:
+- Each case requires `NX % NP == 0`; non-divisible cases are skipped.
+- Output folder: `outputs/correctness_lf_only_<timestamp>/`
+- Summary file: `outputs/correctness_lf_only_<timestamp>/results.csv`
+- Per-case outputs:
+  - `serial_<NX>x<NY>.csv`
+  - `mpi_np<NP>_<NX>x<NY>.csv`
+
+`results.csv` columns:
+`nx,ny,np,steps,dt,dx,dy,g,eps,serial_time_s,mpi_time_s,speedup,max_abs_diff,mean_abs_diff,max_rel_diff,n,serial_csv,mpi_csv,pass`
+
 ## Benchmark / experiments
 Runs serial baseline and MPI for a list of process counts, writing a long-format CSV under [results](results/).
 The runtime is measured using `CLOCK_MONOTONIC` (serial) and the global max across ranks using `CLOCK_MONOTONIC` (MPI).
